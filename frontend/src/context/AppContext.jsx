@@ -13,6 +13,44 @@ export const AppProvider = ({ children }) => {
   const [posts, setPosts] = useState(JSON.parse(localStorage.getItem('cyberguard_posts')) || getInitialPosts());
   const [showToast, setShowToast] = useState(null); // { title: '', icon: '', type: 'badge' | 'xp' }
 
+  // Threat Analyzer State
+  const [analyzerInput, setAnalyzerInput] = useState('');
+  const [analyzerResult, setAnalyzerResult] = useState(null);
+  const [analyzerSimulationActive, setAnalyzerSimulationActive] = useState(null);
+  const [analyzerPrediction, setAnalyzerPrediction] = useState(null);
+  const [analyzerActiveTab, setAnalyzerActiveTab] = useState('General');
+
+  useEffect(() => {
+    const checkStreak = () => {
+      const lastLoginStr = localStorage.getItem('cyberguard_last_login');
+      const today = new Date().toDateString();
+      
+      if (lastLoginStr !== today) {
+        let newStreak = parseInt(localStorage.getItem('cyberguard_streak')) || 0;
+        if (lastLoginStr) {
+          const lastLogin = new Date(lastLoginStr);
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          
+          if (lastLogin.toDateString() === yesterday.toDateString()) {
+            newStreak += 1;
+          } else {
+            newStreak = 1;
+          }
+        } else {
+          newStreak = 1;
+        }
+        
+        setStreak(newStreak);
+        localStorage.setItem('cyberguard_streak', newStreak.toString());
+        localStorage.setItem('cyberguard_last_login', today);
+      }
+    };
+    
+    checkStreak();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (theme === 'light') {
       document.documentElement.classList.add('light');
@@ -50,12 +88,12 @@ export const AppProvider = ({ children }) => {
   };
 
   const checkLevelUp = (oldXp, newXp) => {
-    // Basic level thresholds
-    const levels = [
-      { max: 100, name: 'Cyber Rookie' },
-      { max: 300, name: 'Threat Spotter' }
-    ];
-    // We can expand this logic further down.
+    // Unlock badges based on XP milestones
+    if (oldXp < 100 && newXp >= 100) unlockBadge('rookie', 'Cyber Rookie');
+    if (oldXp < 300 && newXp >= 300) unlockBadge('spotter', 'Threat Spotter');
+    if (oldXp < 600 && newXp >= 600) unlockBadge('analyst', 'Security Analyst');
+    if (oldXp < 1000 && newXp >= 1000) unlockBadge('hunter', 'Threat Hunter');
+    if (oldXp < 2000 && newXp >= 2000) unlockBadge('guardian', 'Cyber Guardian');
   };
 
   const unlockBadge = (badgeId, badgeName) => {
@@ -85,7 +123,12 @@ export const AppProvider = ({ children }) => {
       badges, unlockBadge,
       history, addHistory,
       posts, addPost,
-      showToast, setShowToast
+      showToast, setShowToast,
+      analyzerInput, setAnalyzerInput,
+      analyzerResult, setAnalyzerResult,
+      analyzerSimulationActive, setAnalyzerSimulationActive,
+      analyzerPrediction, setAnalyzerPrediction,
+      analyzerActiveTab, setAnalyzerActiveTab
     }}>
       {children}
     </AppContext.Provider>

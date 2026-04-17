@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Flame, Star, Moon, Sun, Award } from 'lucide-react';
+import { Flame, Star, Moon, Sun, Award, Shield } from 'lucide-react';
 
 const Header = () => {
   const { xp, streak, theme, toggleTheme, badges } = useApp();
@@ -20,15 +20,22 @@ const Header = () => {
     <header className="h-20 border-b border-soft bg-surface-color flex items-center justify-between px-6 lg:px-8">
       <div className="flex-1">
         <h2 className="text-xl font-bold hidden md:block">Welcome back!</h2>
-        <div className="hidden md:flex items-center gap-2 mt-1">
-          <span className="text-sm font-medium text-[var(--color-primary)]">{levelInfo.name}</span>
-          <div className="w-32 h-2 bg-[var(--bg-color)] rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-[var(--color-primary)] transition-all duration-500 ease-out" 
-              style={{ width: `${progress}%` }}
-            ></div>
+        <div className="hidden md:flex items-center gap-3 mt-1 bg-black/5 dark:bg-white/5 py-1.5 px-4 rounded-full border border-soft shadow-sm">
+          <div className="flex items-center gap-2 text-sm font-bold text-indigo-500 dark:text-indigo-400">
+            <Shield size={16} /> 
+            {levelInfo.name}
           </div>
-          <span className="text-xs text-secondary-color">{xp} / {levelInfo.max}</span>
+          <div className="w-40 h-2 bg-[var(--bg-color)] rounded-full overflow-hidden shadow-inner flex-shrink-0">
+            <div 
+              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-1000 ease-out relative" 
+              style={{ width: `${progress}%` }}
+            >
+              <div className="absolute top-0 right-0 bottom-0 w-2 bg-white/30 rounded-full"></div>
+            </div>
+          </div>
+          <span className="text-xs font-mono font-bold text-secondary-color flex items-baseline gap-1">
+            {xp} <span className="opacity-50 text-[10px]">/ {levelInfo.max} XP</span>
+          </span>
         </div>
       </div>
 

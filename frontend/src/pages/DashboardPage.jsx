@@ -216,7 +216,7 @@ const DashboardPage = () => {
                 {history.slice(0, 10).map((item) => (
                   <tr key={item.id} className="hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-secondary-color">
-                      {new Date(item.timestamp).toLocaleDateString()}
+                      {new Date(item.timestamp).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 max-w-xs truncate text-[var(--text-primary)]">
                       {item.content}

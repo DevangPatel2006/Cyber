@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { classifyThreat } from '../utils/anthropic';
 import Tesseract from 'tesseract.js';
 import { 
-  Upload, ScanSearch, Link as LinkIcon, Mail, MessageSquare, 
+  Upload, ScanSearch, 
   AlertTriangle, ShieldCheck, AlertCircle, Info, ChevronRight, Check
 } from 'lucide-react';
 
@@ -43,14 +43,17 @@ const CategoryColors = {
 };
 
 const AnalysePage = () => {
-  const { addXp, addHistory } = useApp();
-  const [activeTab, setActiveTab] = useState('URL');
-  const [inputText, setInputText] = useState('');
+  const { 
+    addXp, addHistory,
+    analyzerInput: inputText, setAnalyzerInput: setInputText,
+    analyzerResult: result, setAnalyzerResult: setResult,
+    analyzerSimulationActive: simulationActive, setAnalyzerSimulationActive: setSimulationActive,
+    analyzerPrediction: prediction, setAnalyzerPrediction: setPrediction,
+    analyzerActiveTab: activeTab, setAnalyzerActiveTab: setActiveTab
+  } = useApp();
+  
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isOcring, setIsOcring] = useState(false);
-  const [result, setResult] = useState(null);
-  const [simulationActive, setSimulationActive] = useState(null);
-  const [prediction, setPrediction] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -72,9 +75,17 @@ const AnalysePage = () => {
     }
   };
 
+  const handleClear = () => {
+    setActiveTab('General');
+    setInputText('');
+    setSimulationActive(null);
+    setResult(null);
+    setPrediction(null);
+  };
+
   const loadSimulation = () => {
     const random = SIMULATIONS[Math.floor(Math.random() * SIMULATIONS.length)];
-    setActiveTab(random.type);
+    setActiveTab('General');
     setInputText(random.content);
     setSimulationActive(random);
     setResult(null);
@@ -121,12 +132,6 @@ const AnalysePage = () => {
     }
   };
 
-  const tabs = [
-    { name: 'URL', icon: LinkIcon },
-    { name: 'Email', icon: Mail },
-    { name: 'Message', icon: MessageSquare }
-  ];
-
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
@@ -134,37 +139,22 @@ const AnalysePage = () => {
           <h1 className="text-3xl font-bold tracking-tight">Threat Analyzer</h1>
           <p className="text-secondary-color mt-1">Paste a suspicious link, email, or message to scan it with AI.</p>
         </div>
-        <button onClick={loadSimulation} className="btn btn-secondary py-2 border-indigo-500/30 text-indigo-400">
-          Try a Simulation
-        </button>
+        <div className="flex gap-2">
+          <button onClick={handleClear} className="btn btn-secondary py-2 border-slate-500/30">
+            New Content
+          </button>
+          <button onClick={loadSimulation} className="btn btn-secondary py-2 border-indigo-500/30 text-indigo-400">
+            Try a Simulation
+          </button>
+        </div>
       </div>
 
       <div className="surface-card p-1">
-        <div className="flex border-b border-soft px-4 p-2 gap-2">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.name}
-                onClick={() => { setActiveTab(tab.name); setResult(null); }}
-                className={`py-3 px-6 font-medium rounded-xl flex items-center gap-2 transition-all ${
-                  activeTab === tab.name 
-                    ? 'bg-[var(--border-color)] text-[var(--text-primary)]' 
-                    : 'text-secondary-color hover:text-[var(--text-primary)] hover:bg-[var(--border-color)]/50'
-                }`}
-              >
-                <Icon size={18} />
-                {tab.name}
-              </button>
-            );
-          })}
-        </div>
-
         <div className="p-6">
           <div className="relative">
             <textarea
               className="w-full h-48 bg-[var(--bg-color)] border border-soft rounded-xl p-4 text-[var(--text-primary)] focus:outline-none focus:border-[var(--color-primary)] transition-colors resize-none mb-4"
-              placeholder={`Paste the suspicious ${activeTab.toLowerCase()} content here...`}
+              placeholder="Paste the suspicious content here..."
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
             />
