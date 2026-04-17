@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import html2canvas from 'html2canvas';
+import * as htmlToImage from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { Download, Shield, Target, Flame, Activity, BrainCircuit } from 'lucide-react';
 import { classifyThreat } from '../utils/anthropic';
@@ -59,9 +59,11 @@ const DashboardPage = () => {
       const highest = [...weakSpotsData].sort((a,b) => b.value - a.value)[0];
       
       const tips = {
-        'Phishing': "You have a tendency to miss Phishing indicators. Always double-check sender domains and look for slight misspellings before clicking links.",
-        'Malware': "You've struggled with Malware identification. Remember that unexpected attachments, especially .exe or .zip files from unknown sources, are highly dangerous.",
-        'Social Engineering': "Social Engineering is your weak spot. Be wary of urgent requests, especially those asking for money, gift cards, or credentials, even from supposed authorities."
+        'Phishing': "Weakness: Phishing (Fake Emails/Links)\n\nPhishing tricks you into giving away credentials by pretending to be a trusted company.\n\nQuick Tips:\n• Always check the sender's real email address.\n• Hover over links before clicking to spot fake URLs.\n• When in doubt, manually type the website into your browser.",
+        
+        'Malware': "Weakness: Malware (Malicious Files)\n\nMalware actively infects your device through hidden files or dangerous downloads.\n\nQuick Tips:\n• Never download or open unexpected email attachments.\n• Watch out for dangerous file types like .exe, .bat, or .zip.\n• Disable automatic macros in Word or Excel.",
+        
+        'Social Engineering': "Weakness: Social Engineering (Psychological Tricks)\n\nAttackers use fear or urgency (like a fake boss asking for gift cards) to bypass defenses.\n\nQuick Tips:\n• Pause for 10 seconds before reacting to urgent demands.\n• Verify unusual requests by calling the person directly.\n• Never share passwords or internal company info over text."
       };
       
       setAiTip(tips[highest.name] || "Great job staying secure! Keep analyzing any suspicious emails before taking action.");
@@ -69,22 +71,127 @@ const DashboardPage = () => {
     fetchTip();
   }, [history]);
 
-  const handleExportPDF = async () => {
-    const element = dashboardRef.current;
-    if (!element) return;
-    
+  const handleExportPDF = () => {
     try {
-      const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      let cursorY = 20;
+
+      // Helper function for page breaks
+      const checkPageBreak = (spaceNeeded = 10) => {
+        if (cursorY + spaceNeeded > 280) {
+          pdf.addPage();
+          cursorY = 20;
+        }
+      };
+
+      // Header
+      pdf.setFontSize(22);
+      pdf.setTextColor(40, 40, 40);
+      pdf.text("CyberGuard Analytics Report", pageWidth / 2, cursorY, { align: "center" });
+      cursorY += 10;
       
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save('CyberGuard_Dashboard.pdf');
+      pdf.setFontSize(12);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(`Generated exactly on: ${new Date().toLocaleString()}`, pageWidth / 2, cursorY, { align: "center" });
+      cursorY += 20;
+
+      // 1. User Score Breakdown
+      pdf.setFontSize(16);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text("User Score Breakdown", 20, cursorY);
+      cursorY += 10;
+
+      let tier = "Novice Defender";
+      if (xp > 100) tier = "Intermediate Analyst";
+      if (xp > 300) tier = "Advanced Security Operative";
+      if (xp > 800) tier = "Cyber Elite";
+      const threatRatio = totalScans ? Math.round((threatsCaught / totalScans) * 100) : 0;
+
+      pdf.setFontSize(12);
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(`• Performance Tier: ${tier}`, 25, cursorY);
+      cursorY += 8;
+      pdf.text(`• Total Awareness XP: ${xp} XP`, 25, cursorY);
+      cursorY += 8;
+      pdf.text(`• Current Defense Streak: ${streak} Days`, 25, cursorY);
+      cursorY += 8;
+      pdf.text(`• Scans Conducted: ${totalScans} Items`, 25, cursorY);
+      cursorY += 8;
+      pdf.text(`• Detection Rate: ${threatRatio}% (${threatsCaught} Threats Caught)`, 25, cursorY);
+      cursorY += 12;
+
+      pdf.setFontSize(14);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text("Identified Weak Spots", 25, cursorY);
+      cursorY += 8;
+
+      pdf.setFontSize(12);
+      pdf.setTextColor(60, 60, 60);
+      weakSpotsData.forEach(ws => {
+        pdf.text(`• ${ws.name}: ${ws.value} Incidents`, 30, cursorY);
+        cursorY += 8;
+      });
+      cursorY += 6;
+
+      // 2. Threat Summary (AI Analysis)
+      checkPageBreak();
+      pdf.setFontSize(16);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text("AI Threat Summary", 20, cursorY);
+      cursorY += 10;
+
+      pdf.setFontSize(12);
+      pdf.setTextColor(60, 60, 60);
+      const splitTip = pdf.splitTextToSize(`Analysis: ${aiTip}`, pageWidth - 40);
+      pdf.text(splitTip, 25, cursorY);
+      cursorY += (splitTip.length * 7) + 10;
+
+      // 3. History Optimized
+      checkPageBreak(20);
+      pdf.setFontSize(16);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text("Recent Scan History", 20, cursorY);
+      cursorY += 10;
+
+      if (history.length === 0) {
+        pdf.setFontSize(12);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text("No history recorded yet.", 25, cursorY);
+      } else {
+        // Table Header
+        pdf.setFontSize(11);
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFont(undefined, 'bold');
+        pdf.text("Date", 25, cursorY);
+        pdf.text("Category", 90, cursorY);
+        pdf.text("Severity", 140, cursorY);
+        pdf.text("XP", 180, cursorY);
+        cursorY += 6;
+        
+        pdf.line(25, cursorY, pageWidth - 20, cursorY);
+        cursorY += 6;
+
+        pdf.setFont(undefined, 'normal');
+        pdf.setTextColor(60, 60, 60);
+
+        history.slice(0, 50).forEach((item) => {
+          checkPageBreak(10);
+          
+          const dateStr = new Date(item.timestamp).toLocaleDateString();
+          pdf.text(dateStr, 25, cursorY);
+          pdf.text(item.category || "Unknown", 90, cursorY);
+          pdf.text(item.severity || "None", 140, cursorY);
+          pdf.text(`+${item.xpEarned || 0}`, 180, cursorY);
+          
+          cursorY += 8;
+        });
+      }
+
+      pdf.save('CyberGuard_Optimized_Report.pdf');
     } catch (err) {
-      console.error(err);
-      alert('Failed to export PDF');
+      console.error("Native PDF Export Error:", err);
+      alert('Failed to construct PDF document');
     }
   };
 
@@ -213,7 +320,7 @@ const DashboardPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-soft">
-                {history.slice(0, 10).map((item) => (
+                {history.map((item) => (
                   <tr key={item.id} className="hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-secondary-color">
                       {new Date(item.timestamp).toLocaleString()}
